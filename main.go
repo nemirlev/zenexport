@@ -27,7 +27,7 @@ type DatabaseFlags struct {
 }
 
 func parseFlags() Flags {
-	intervalMinutes := flag.Int("interval", 5, "The interval in minutes to wait between syncs")
+	intervalMinutes := flag.Int("interval", 30, "The interval in minutes to wait between syncs")
 	tokenFlag := flag.String("token", "", "The ZenMoney token. Get it from https://zerro.app/token")
 	daemon := flag.Bool("d", false, "Run as a daemon")
 	dbType := flag.String("dbtype", "clickhouse", "The type of the database")

@@ -20,21 +20,24 @@
 ## Быстрый запуск
 
 * Получить токен через [Zerro.app](https://zerro.app/token).
-* Установите Docker если у вас их нет.
+* Установите Docker если у вас его нет.
 
-Копируйте файл .env.example в .env `cp .env.example .env` и заполняете там токен, который вы получили выше в Zerro.app.
+Скопируйте файл .env.example в .env `cp .env.example .env` и заполните там токен, который вы получили выше в Zerro.app.
 В docker-compose.yml меняете значения подключения к БД в секции `command` на свои.
 
 ```bash
 docker-compose up -d
 ```
 
+По умолчанию обновление будет происходить каждые 30 минут. Если хотите изменить - добавьте строчку `comand: -interval 180` в
+docker-compose.yml, где 180 - это интервал в минутах. После этого перезапустите контейнеры `docker-compose restart`.
+
 > БД ClickHouse должна где-то быть запущена. Если нет, можете использовать полностью готовый проект с Grafana для построения
 > диаграмм -  [ZenMoney Dashboard](https://github.com/nemirlev/zenmoney-dashboard)
 
 ## Использование
 
-Для того что бы использовать, необходимо:
+Необходимо:
 
 * Получить токен через [Zerro.app](https://zerro.app/token).
 * Установить утилиту для миграций [migrate](https://github.com/golang-migrate/migrate)
@@ -83,7 +86,6 @@ go run main.go -d -interval 60 -token $TOKEN -server $SERVER -user $USER -db $DB
 | CLICKHOUSE_USER     | Пользователь БД                                               | ""                    |
 | CLICKHOUSE_DB       | Имя БД                                                        | ""                    |
 | CLICKHOUSE_PASSWORD | Пароль пользователя БД                                        | ""                    |
-| INTERVAL            | Интервал с которым запускать экспорт, для сборки в Dockerfile | ""                    |
 
 ## Вклад в проект
 
