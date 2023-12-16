@@ -5,6 +5,9 @@
 ![GitHub License](https://img.shields.io/github/license/nemirlev/zenexport)
 ![GitHub go.mod Go version (subdirectory of monorepo)](https://img.shields.io/github/go-mod/go-version/nemirlev/zenexport)
 ![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/nemirlev/zenexport)
+![Docker Pulls](https://img.shields.io/docker/pulls/nemirlev/zenexport)
+![Docker Image Size (latest by date)](https://img.shields.io/docker/image-size/nemirlev/zenexport)
+![Docker Image Version (latest by date)](https://img.shields.io/docker/v/nemirlev/zenexport)
 
 Данный проект создан для экспорта данных в свою БД из сервиса для учета личных
 финансов [ZenMoney](https://zenmoney.ru/).
