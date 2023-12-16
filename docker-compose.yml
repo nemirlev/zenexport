@@ -8,6 +8,7 @@ services:
     env_file: .env
     depends_on:
       - migration
+    network_mode: host
 
   migration:
     image: migrate/migrate
