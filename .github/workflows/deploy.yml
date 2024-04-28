@@ -23,7 +23,7 @@ jobs:
 
     - name: Build Docker image
       run: |
-        VERSION=$(echo ${GITHUB_REF#refs/heads/master/})
+        VERSION=$(echo ${GITHUB_REF#refs/heads/})
         docker buildx build --platform linux/amd64,linux/arm64,linux/arm/v7,linux/riscv64 -t my-docker-image:$VERSION -t my-docker-image:latest . --push
 
     - name: Create GitHub Release
