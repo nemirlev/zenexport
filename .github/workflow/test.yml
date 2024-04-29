@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - feature/*
+      - release/*
   pull_request:
 
 jobs:
