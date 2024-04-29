@@ -8,6 +8,7 @@
 ![Docker Pulls](https://img.shields.io/docker/pulls/nemirlev/zenexport)
 ![Docker Image Size (latest by date)](https://img.shields.io/docker/image-size/nemirlev/zenexport)
 ![Docker Image Version (latest by date)](https://img.shields.io/docker/v/nemirlev/zenexport)
+[![codecov](https://codecov.io/gh/nemirlev/zenexport/graph/badge.svg?token=WOGJKM2YV0)](https://codecov.io/gh/nemirlev/zenexport)
 
 Данный проект создан для экспорта данных в свою БД из сервиса для учета личных
 финансов [ZenMoney](https://zenmoney.ru/).
