@@ -58,5 +58,5 @@ jobs:
           platforms: ${{ matrix.platform }}
           push: true
           tags: |
-            your-dockerhub-username/your-repo-name:latest
-            your-dockerhub-username/your-repo-name:${{ steps.get_version.outputs.VERSION }}
+            nemirlev/zenexport:latest
+            nemirlev/zenexport:${{ steps.get_version.outputs.VERSION }}
