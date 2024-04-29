@@ -8,11 +8,11 @@ on:
       - feature/*
 
 jobs:
-  strategy:
-    matrix:
-      go: [ '1.22' ]
-      os: [ ubuntu-latest, macos-latest, windows-latest ]
   lint:
+    strategy:
+      matrix:
+        go: [ '1.22' ]
+        os: [ ubuntu-latest, macos-latest, windows-latest ]
     name: Lint
     runs-on: ubuntu-latest
     steps:
@@ -58,6 +58,10 @@ jobs:
           file: ./coverage.txt
 
   build:
+    strategy:
+      matrix:
+        go: [ '1.22' ]
+        os: [ ubuntu-latest, macos-latest, windows-latest ]
     name: Build
     runs-on: ubuntu-latest
     needs: [lint, test]
