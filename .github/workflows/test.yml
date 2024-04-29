@@ -8,23 +8,27 @@ on:
       - feature/*
 
 jobs:
+  strategy:
+    matrix:
+      go: [ '1.22' ]
+      os: [ ubuntu-latest, macos-latest, windows-latest ]
   lint:
     name: Lint
     runs-on: ubuntu-latest
     steps:
       - name: Set up Go
-        uses: actions/setup-go@v1
+        uses: actions/setup-go@v5
         with:
-          go-version: 1.22
+          go-version: ${{ matrix.go }}
 
       - name: Check out code
-        uses: actions/checkout@v1
+        uses: actions/checkout@v4
 
       - name: Lit by go vet
         run: go vet ./...
 
       - name: Lint by golangci-lint
-        uses: golangci/golangci-lint-action@v2
+        uses: golangci/golangci-lint-action@v5
         with:
           version: latest
           args: run ./...
@@ -37,12 +41,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Set up Go
-        uses: actions/setup-go@v1
+        uses: actions/setup-go@v5
         with:
-          go-version: 1.22
+          go-version: ${{ matrix.go }}
 
       - name: Check out code
-        uses: actions/checkout@v1
+        uses: actions/checkout@v4
 
       - name: Run Unit tests.
         run: go test -v ./... -coverprofile=coverage.txt
@@ -59,12 +63,12 @@ jobs:
     needs: [lint, test]
     steps:
       - name: Set up Go
-        uses: actions/setup-go@v1
+        uses: actions/setup-go@v5
         with:
-          go-version: 1.22
+          go-version: ${{ matrix.go }}
 
       - name: Check out code
-        uses: actions/checkout@v1
+        uses: actions/checkout@v4
 
       - name: Build
         run: make build
