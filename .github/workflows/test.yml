@@ -31,10 +31,6 @@ jobs:
         uses: golangci/golangci-lint-action@v5
         with:
           version: latest
-          args: run ./...
-
-      - name: Lint by Staticcheck
-        run: go get honnef.co/go/tools/cmd/staticcheck && staticcheck ./...
 
   test:
     strategy:
