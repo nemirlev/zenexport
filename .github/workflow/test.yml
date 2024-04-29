@@ -3,8 +3,9 @@ on:
   push:
     branches:
       - feature/*
-      - release/*
   pull_request:
+    branches:
+      - feature/*
 
 jobs:
   lint:
