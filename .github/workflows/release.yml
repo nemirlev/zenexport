@@ -39,6 +39,10 @@ jobs:
           - darwin/arm64
           - windows/amd64
     steps:
+      - name: Extract tag name
+        id: get_version
+        run: echo ::set-output name=VERSION::${GITHUB_REF#refs/tags/}
+        
       - name: Check out code
         uses: actions/checkout@v4
 
