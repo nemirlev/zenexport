@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 ### ⚙️ Miscellaneous Tasks
 
 - Добавил возможность генерировать changelog
+- Изменил тригер для создания артефактов релиза
 
 ## [1.2.1] - 2024-04-29
 
