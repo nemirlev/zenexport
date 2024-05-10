@@ -12,7 +12,7 @@ services:
     image: migrate/migrate
     env_file: .env
     volumes:
-      - ./migration:/migrations
+      - ./migration/clickhouse:/migrations
     command: [ "-path=/migrations/", "-database", "clickhouse://clickhouse:9000?database=zenmoney&username=admin&password=password", "up" ]
     depends_on:
       - clickhouse
