@@ -7,6 +7,7 @@ import (
 	"github.com/nemirlev/zenexport/db"
 	"github.com/nemirlev/zenexport/db/clickhouse"
 	"github.com/nemirlev/zenexport/internal/config"
+	"github.com/nemirlev/zenexport/internal/logger"
 	"os"
 	"time"
 )
@@ -36,22 +37,23 @@ func runSyncAndSave(cfg *config.Config, client *zenapi.Client, db db.DB) {
 }
 
 func main() {
+	log := logger.New()
 	cfg, err := config.FromEnv()
 	if err != nil {
-		//log.WithError(err, "get cfg")
+		log.WithError(err, "get cfg")
 		os.Exit(1)
 	}
 
 	client, err := createClient(cfg.ZenMoneyToken)
 	if err != nil {
-		fmt.Println(err, "failed to create client")
-		return
+		log.WithError(err, "failed to create client")
+		os.Exit(1)
 	}
 
 	dbase, err := setupDatabase()
 	if err != nil {
-		fmt.Println(err)
-		return
+		log.WithError(err, "failed to setup database")
+		os.Exit(1)
 	}
 
 	if cfg.IsDaemon {
