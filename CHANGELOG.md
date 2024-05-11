@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [unreleased]
+
+### ⚙️ Miscellaneous Tasks
+
+- Обновил условия запуска тестов
+
 ## [1.3.0] - 2024-05-11
 
 ### 🚜 Refactor
