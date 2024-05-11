@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [.1.3.0] - 2024-05-11
+## [1.3.0] - 2024-05-11
 
 ### 🚜 Refactor
 
