@@ -7,23 +7,23 @@ import (
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	"github.com/nemirlev/zenapi"
+	"github.com/nemirlev/zenexport/internal/config"
 	"log"
-	"os"
 )
 
 type ClickHouse struct {
 	Conn driver.Conn
 }
 
-func (c *ClickHouse) connect() error {
+func (c *ClickHouse) connect(cfg *config.Config) error {
 	var (
 		ctx       = context.Background()
 		conn, err = clickhouse.Open(&clickhouse.Options{
-			Addr: []string{fmt.Sprintf("%s:9000", os.Getenv("CLICKHOUSE_SERVER"))},
+			Addr: []string{fmt.Sprintf("%s:9000", cfg.ClickhouseServer)},
 			Auth: clickhouse.Auth{
-				Database: os.Getenv("CLICKHOUSE_DB"),
-				Username: os.Getenv("CLICKHOUSE_USER"),
-				Password: os.Getenv("CLICKHOUSE_PASSWORD"),
+				Database: cfg.ClickhouseDB,
+				Username: cfg.ClickhouseUser,
+				Password: cfg.ClickhousePassword,
 			},
 			Debugf: func(format string, v ...interface{}) {
 				fmt.Printf(format, v)
@@ -47,8 +47,8 @@ func (c *ClickHouse) connect() error {
 	return nil
 }
 
-func (c *ClickHouse) Save(data *zenapi.Response) error {
-	err := c.connect()
+func (c *ClickHouse) Save(cfg *config.Config, data *zenapi.Response) error {
+	err := c.connect(cfg)
 	if err != nil {
 		return err
 	}
