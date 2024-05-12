@@ -44,3 +44,22 @@ func (s *Store) connect(cfg *config.Config) error {
 	s.Conn = conn
 	return nil
 }
+
+// executeBatch выполняет пакетный запрос в ClickHouse
+func executeBatch(conn driver.Conn, ctx context.Context, query string, data [][]interface{}) error {
+	batch, err := conn.PrepareBatch(ctx, query)
+	if err != nil {
+		return err
+	}
+
+	for _, item := range data {
+		if err := batch.Append(item...); err != nil {
+			return err
+		}
+	}
+
+	if err := batch.Send(); err != nil {
+		return err
+	}
+	return nil
+}
