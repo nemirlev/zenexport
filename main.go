@@ -16,13 +16,15 @@ func createClient(token string) (*zenapi.Client, error) {
 }
 
 func runSyncAndSave(cfg *config.Config, client *zenapi.Client, db db.DataStore) {
-	fmt.Println("Starting import...")
+	fmt.Println("Get data from ZenMoney...")
 	resBody, err := client.FullSync()
+	fmt.Println("Finished getting data from ZenMoney.")
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
+	fmt.Println("Save data to Database...")
 	err = db.Save(cfg, &resBody)
 	if err != nil {
 		fmt.Println(err)
