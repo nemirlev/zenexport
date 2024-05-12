@@ -2,103 +2,38 @@ package clickhouse
 
 import (
 	"context"
-	"errors"
-	"fmt"
-	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	"github.com/nemirlev/zenapi"
 	"github.com/nemirlev/zenexport/internal/config"
 	"log"
 )
 
-type ClickHouse struct {
-	Conn driver.Conn
-}
-
-func (c *ClickHouse) connect(cfg *config.Config) error {
-	var (
-		ctx       = context.Background()
-		conn, err = clickhouse.Open(&clickhouse.Options{
-			Addr: []string{fmt.Sprintf("%s:9000", cfg.ClickhouseServer)},
-			Auth: clickhouse.Auth{
-				Database: cfg.ClickhouseDB,
-				Username: cfg.ClickhouseUser,
-				Password: cfg.ClickhousePassword,
-			},
-			Debugf: func(format string, v ...interface{}) {
-				fmt.Printf(format, v)
-			},
-		})
-	)
-
-	if err != nil {
-		return err
-	}
-
-	if err := conn.Ping(ctx); err != nil {
-		var exception *clickhouse.Exception
-		if errors.As(err, &exception) {
-			fmt.Printf("Exception [%d] %s \n%s\n", exception.Code, exception.Message, exception.StackTrace)
-		}
-		return err
-	}
-
-	c.Conn = conn
-	return nil
-}
-
-func (c *ClickHouse) Save(cfg *config.Config, data *zenapi.Response) error {
-	err := c.connect(cfg)
+func (s *Store) Save(cfg *config.Config, data *zenapi.Response) error {
+	err := s.connect(cfg)
 	if err != nil {
 		return err
 	}
 	defer func() {
-		err := c.Conn.Close()
+		err := s.Conn.Close()
 		if err != nil {
 			log.Fatalf("failed to close connection: %v", err)
 		}
 	}()
 
-	saveInstruments(c.Conn, data.Instrument)
-	saveCountries(c.Conn, data.Country)
-	saveCompanies(c.Conn, data.Company)
-	saveUsers(c.Conn, data.User)
-	saveAccounts(c.Conn, data.Account)
-	saveTags(c.Conn, data.Tag)
-	saveMerchants(c.Conn, data.Merchant)
-	saveBudgets(c.Conn, data.Budget)
-	saveReminders(c.Conn, data.Reminder)
-	saveReminderMarkers(c.Conn, data.ReminderMarker)
-	saveTransactions(c.Conn, data.Transaction)
+	saveInstruments(s.Conn, data.Instrument)
+	saveCountries(s.Conn, data.Country)
+	saveCompanies(s.Conn, data.Company)
+	saveUsers(s.Conn, data.User)
+	saveAccounts(s.Conn, data.Account)
+	saveTags(s.Conn, data.Tag)
+	saveMerchants(s.Conn, data.Merchant)
+	saveBudgets(s.Conn, data.Budget)
+	saveReminders(s.Conn, data.Reminder)
+	saveReminderMarkers(s.Conn, data.ReminderMarker)
+	saveTransactions(s.Conn, data.Transaction)
 
 	return nil
 }
-
-//func saveBatch(conn driver.Conn, entity db.DatabaseEntity) error {
-//	ctx := context.Background()
-//
-//	str := "TRUNCATE TABLE IF EXISTS " + entity.GetTableName()
-//	err := conn.Exec(ctx, str)
-//	if err != nil {
-//		return err
-//	}
-//
-//	batch, err := conn.PrepareBatch(ctx, entity.GetInsertQuery())
-//	if err != nil {
-//		return err
-//	}
-//
-//	err = batch.Append(entity.GetValues()...)
-//	if err != nil {
-//		return err
-//	}
-//
-//	if err := batch.Send(); err != nil {
-//		return err
-//	}
-//
-//	return nil
-//}
 
 func saveTransactions(conn driver.Conn, transactions []zenapi.Transaction) {
 	ctx := context.Background()
