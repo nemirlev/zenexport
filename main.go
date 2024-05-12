@@ -4,9 +4,8 @@ package main
 import (
 	"fmt"
 	"github.com/nemirlev/zenapi"
-	"github.com/nemirlev/zenexport/db"
-	"github.com/nemirlev/zenexport/db/clickhouse"
 	"github.com/nemirlev/zenexport/internal/config"
+	"github.com/nemirlev/zenexport/internal/db"
 	"github.com/nemirlev/zenexport/internal/logger"
 	"os"
 	"time"
@@ -16,18 +15,16 @@ func createClient(token string) (*zenapi.Client, error) {
 	return zenapi.NewClient(token)
 }
 
-func setupDatabase() (*clickhouse.ClickHouse, error) {
-	return &clickhouse.ClickHouse{}, nil
-}
-
-func runSyncAndSave(cfg *config.Config, client *zenapi.Client, db db.DB) {
-	fmt.Println("Starting import...")
+func runSyncAndSave(cfg *config.Config, client *zenapi.Client, db db.DataStore) {
+	fmt.Println("Get data from ZenMoney...")
 	resBody, err := client.FullSync()
+	fmt.Println("Finished getting data from ZenMoney.")
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
+	fmt.Println("Save data to Database...")
 	err = db.Save(cfg, &resBody)
 	if err != nil {
 		fmt.Println(err)
@@ -50,7 +47,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	dbase, err := setupDatabase()
+	dbase, err := db.NewDataStore(cfg)
 	if err != nil {
 		log.WithError(err, "failed to setup database")
 		os.Exit(1)
