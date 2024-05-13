@@ -49,7 +49,7 @@ func (s *Store) connect() error {
 }
 
 // executeBatch выполняет пакетный запрос в ClickHouse
-func executeBatch(conn driver.Conn, ctx context.Context, query string, data [][]interface{}) error {
+func (s *Store) executeBatch(conn driver.Conn, ctx context.Context, query string, data [][]interface{}) error {
 	batch, err := conn.PrepareBatch(ctx, query)
 	if err != nil {
 		return err
