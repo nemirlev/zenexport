@@ -49,8 +49,8 @@ func (s *Store) connect() error {
 }
 
 // executeBatch выполняет пакетный запрос в ClickHouse
-func (s *Store) executeBatch(conn driver.Conn, ctx context.Context, query string, data [][]interface{}) error {
-	batch, err := conn.PrepareBatch(ctx, query)
+func (s *Store) executeBatch(ctx context.Context, query string, data [][]interface{}) error {
+	batch, err := s.Conn.PrepareBatch(ctx, query)
 	if err != nil {
 		s.Log.WithError(err, "error on prepare batch Clickhouse")
 		return err
@@ -68,4 +68,9 @@ func (s *Store) executeBatch(conn driver.Conn, ctx context.Context, query string
 		return err
 	}
 	return nil
+}
+
+func (s *Store) truncateTable(ctx context.Context, tableName string) error {
+	query := fmt.Sprintf("TRUNCATE TABLE IF EXISTS %s", tableName)
+	return s.Conn.Exec(ctx, query)
 }
