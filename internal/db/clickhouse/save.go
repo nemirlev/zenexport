@@ -4,13 +4,12 @@ import (
 	"context"
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	"github.com/nemirlev/zenapi"
-	"github.com/nemirlev/zenexport/internal/config"
 	"log"
 	"os"
 )
 
-func (s *Store) Save(cfg *config.Config, data *zenapi.Response) error {
-	err := s.connect(cfg)
+func (s *Store) Save(data *zenapi.Response) error {
+	err := s.connect()
 	if err != nil {
 		return err
 	}

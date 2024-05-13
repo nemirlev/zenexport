@@ -16,15 +16,15 @@ type Store struct {
 	Config *config.Config
 }
 
-func (s *Store) connect(cfg *config.Config) error {
+func (s *Store) connect() error {
 	var (
 		ctx       = context.Background()
 		conn, err = clickhouse.Open(&clickhouse.Options{
-			Addr: []string{fmt.Sprintf("%s:9000", cfg.ClickhouseServer)},
+			Addr: []string{fmt.Sprintf("%s:9000", s.Config.ClickhouseServer)},
 			Auth: clickhouse.Auth{
-				Database: cfg.ClickhouseDB,
-				Username: cfg.ClickhouseUser,
-				Password: cfg.ClickhousePassword,
+				Database: s.Config.ClickhouseDB,
+				Username: s.Config.ClickhouseUser,
+				Password: s.Config.ClickhousePassword,
 			},
 			Debugf: func(format string, v ...interface{}) {
 				fmt.Printf(format, v)
