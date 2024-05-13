@@ -27,7 +27,7 @@ func (s *Store) connect() error {
 				Password: s.Config.ClickhousePassword,
 			},
 			Debugf: func(format string, v ...interface{}) {
-				fmt.Printf(format, v)
+				s.Log.Debug(format, v)
 			},
 		})
 	)
@@ -39,7 +39,7 @@ func (s *Store) connect() error {
 	if err := conn.Ping(ctx); err != nil {
 		var exception *clickhouse.Exception
 		if errors.As(err, &exception) {
-			fmt.Printf("Exception [%d] %s \n%s\n", exception.Code, exception.Message, exception.StackTrace)
+			s.Log.WithError(err, "Exception [%d] %s \n%s\n", exception.Code, exception.Message, exception.StackTrace)
 		}
 		return err
 	}
