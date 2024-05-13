@@ -6,6 +6,7 @@ import (
 	"github.com/nemirlev/zenapi"
 )
 
+// Save сохраняет данные, полученные из объекта zenapi.Response, в соответствующие таблицы базы данных ClickHouse.
 func (s *Store) Save(data *zenapi.Response) error {
 	if s.Conn == nil {
 		if err := s.connect(); err != nil {
@@ -58,6 +59,12 @@ func (s *Store) Save(data *zenapi.Response) error {
 	return nil
 }
 
+// saveBatch выполняет пакетное сохранение данных в указанную таблицу базы данных ClickHouse.
+// Параметры:
+// - ctx: контекст для управления временем выполнения и отменой запроса.
+// - tableName: имя таблицы, в которую будут вставлены данные.
+// - query: строка с SQL-запросом для выполнения пакетной вставки данных.
+// - data: срез с данными, которые будут вставлены в таблицу.
 func (s *Store) saveBatch(ctx context.Context, tableName string, query string, data [][]interface{}) error {
 	fmt.Printf("Starting to save %d rows into %s...\n", len(data), tableName)
 	if err := s.truncateTable(ctx, tableName); err != nil {
@@ -73,6 +80,7 @@ func (s *Store) saveBatch(ctx context.Context, tableName string, query string, d
 	return nil
 }
 
+// saveTransactions сохраняет транзакции в таблицу transaction базы данных ClickHouse.
 func (s *Store) saveTransactions(ctx context.Context, transactions []zenapi.Transaction) error {
 	query := `
 		INSERT INTO transaction (
@@ -101,6 +109,7 @@ func (s *Store) saveTransactions(ctx context.Context, transactions []zenapi.Tran
 	return s.saveBatch(ctx, "transaction", query, data)
 }
 
+// saveReminderMarkers сохраняет маркеры напоминаний в таблицу reminder_marker базы данных ClickHouse.
 func (s *Store) saveReminderMarkers(ctx context.Context, markers []zenapi.ReminderMarker) error {
 	query := `
 		INSERT INTO reminder_marker (
@@ -124,6 +133,7 @@ func (s *Store) saveReminderMarkers(ctx context.Context, markers []zenapi.Remind
 	return s.saveBatch(ctx, "reminder_marker", query, data)
 }
 
+// saveReminders сохраняет напоминания в таблицу reminder базы данных ClickHouse.
 func (s *Store) saveReminders(ctx context.Context, reminders []zenapi.Reminder) error {
 	query := `
 		INSERT INTO reminder (
@@ -148,6 +158,7 @@ func (s *Store) saveReminders(ctx context.Context, reminders []zenapi.Reminder) 
 	return s.saveBatch(ctx, "reminder", query, data)
 }
 
+// saveBudgets сохраняет бюджеты в таблицу budget базы данных ClickHouse.
 func (s *Store) saveBudgets(ctx context.Context, budgets []zenapi.Budget) error {
 	query := `
 		INSERT INTO budget (
@@ -168,6 +179,7 @@ func (s *Store) saveBudgets(ctx context.Context, budgets []zenapi.Budget) error 
 	return s.saveBatch(ctx, "budget", query, data)
 }
 
+// saveMerchants сохраняет мерчантов в таблицу merchant базы данных ClickHouse.
 func (s *Store) saveMerchants(ctx context.Context, merchants []zenapi.Merchant) error {
 	query := `
 		INSERT INTO merchant (
@@ -187,6 +199,7 @@ func (s *Store) saveMerchants(ctx context.Context, merchants []zenapi.Merchant) 
 	return s.saveBatch(ctx, "merchant", query, data)
 }
 
+// saveTags сохраняет теги в таблицу tag базы данных ClickHouse.
 func (s *Store) saveTags(ctx context.Context, tags []zenapi.Tag) error {
 	query := `
 		INSERT INTO tag (
@@ -209,6 +222,7 @@ func (s *Store) saveTags(ctx context.Context, tags []zenapi.Tag) error {
 	return s.saveBatch(ctx, "tag", query, data)
 }
 
+// saveAccounts сохраняет счета в таблицу account базы данных ClickHouse.
 func (s *Store) saveAccounts(ctx context.Context, accounts []zenapi.Account) error {
 	query := `
 		INSERT INTO account (
@@ -235,6 +249,7 @@ func (s *Store) saveAccounts(ctx context.Context, accounts []zenapi.Account) err
 	return s.saveBatch(ctx, "account", query, data)
 }
 
+// saveUsers сохраняет пользователей в таблицу user базы данных ClickHouse.
 func (s *Store) saveUsers(ctx context.Context, users []zenapi.User) error {
 	query := `
 		INSERT INTO user (
@@ -254,6 +269,7 @@ func (s *Store) saveUsers(ctx context.Context, users []zenapi.User) error {
 	return s.saveBatch(ctx, "user", query, data)
 }
 
+// saveCompanies сохраняет компании в таблицу company базы данных ClickHouse.
 func (s *Store) saveCompanies(ctx context.Context, companies []zenapi.Company) error {
 	query := `
 		INSERT INTO company (
@@ -273,6 +289,7 @@ func (s *Store) saveCompanies(ctx context.Context, companies []zenapi.Company) e
 	return s.saveBatch(ctx, "company", query, data)
 }
 
+// saveCountries сохраняет страны в таблицу country базы данных ClickHouse.
 func (s *Store) saveCountries(ctx context.Context, countries []zenapi.Country) error {
 	query := `
 		INSERT INTO country (
@@ -292,6 +309,7 @@ func (s *Store) saveCountries(ctx context.Context, countries []zenapi.Country) e
 	return s.saveBatch(ctx, "country", query, data)
 }
 
+// saveInstruments сохраняет валютные инструменты в таблицу instrument базы данных ClickHouse.
 func (s *Store) saveInstruments(ctx context.Context, instruments []zenapi.Instrument) error {
 	query := `
 		INSERT INTO instrument (
