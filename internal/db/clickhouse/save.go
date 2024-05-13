@@ -2,9 +2,9 @@ package clickhouse
 
 import (
 	"context"
+	"fmt"
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	"github.com/nemirlev/zenapi"
-	"log"
 	"os"
 )
 
@@ -70,7 +70,7 @@ func (s *Store) Save(data *zenapi.Response) error {
 }
 
 func saveTransactions(conn driver.Conn, transactions []zenapi.Transaction) error {
-	log.Printf("Starting to save %d transactions...", len(transactions))
+	fmt.Printf("Starting to save %d transactions...\n", len(transactions))
 	ctx := context.Background()
 	if err := conn.Exec(ctx, "TRUNCATE TABLE IF EXISTS transaction"); err != nil {
 		return err
@@ -93,12 +93,12 @@ func saveTransactions(conn driver.Conn, transactions []zenapi.Transaction) error
 	if err := executeBatch(conn, ctx, query, data); err != nil {
 		return err
 	}
-	log.Printf("Finished saving %d transactions.", len(transactions))
+	fmt.Printf("Finished saving %d transactions.\n", len(transactions))
 	return nil
 }
 
 func saveReminderMarkers(conn driver.Conn, markers []zenapi.ReminderMarker) error {
-	log.Printf("Starting to save %d markers...", len(markers))
+	fmt.Printf("Starting to save %d markers...\n", len(markers))
 	ctx := context.Background()
 	if err := conn.Exec(ctx, "TRUNCATE TABLE IF EXISTS reminder_marker"); err != nil {
 		return err
@@ -118,12 +118,12 @@ func saveReminderMarkers(conn driver.Conn, markers []zenapi.ReminderMarker) erro
 	if err := executeBatch(conn, ctx, query, data); err != nil {
 		return err
 	}
-	log.Printf("Finished saving %d markers.", len(markers))
+	fmt.Printf("Finished saving %d markers.\n", len(markers))
 	return nil
 }
 
 func saveReminders(conn driver.Conn, reminders []zenapi.Reminder) error {
-	log.Printf("Starting to save %d reminders...", len(reminders))
+	fmt.Printf("Starting to save %d reminders...\n", len(reminders))
 	ctx := context.Background()
 	if err := conn.Exec(ctx, "TRUNCATE TABLE IF EXISTS reminder"); err != nil {
 		return err
@@ -143,13 +143,13 @@ func saveReminders(conn driver.Conn, reminders []zenapi.Reminder) error {
 	if err := executeBatch(conn, ctx, query, data); err != nil {
 		return err
 	}
-	log.Printf("Finished saving %d reminders.", len(reminders))
+	fmt.Printf("Finished saving %d reminders.\n", len(reminders))
 
 	return nil
 }
 
 func saveBudgets(conn driver.Conn, budgets []zenapi.Budget) error {
-	log.Printf("Starting to save %d budgets...", len(budgets))
+	fmt.Printf("Starting to save %d budgets...\n", len(budgets))
 	ctx := context.Background()
 	if err := conn.Exec(ctx, "TRUNCATE TABLE IF EXISTS budget"); err != nil {
 		return err
@@ -167,12 +167,12 @@ func saveBudgets(conn driver.Conn, budgets []zenapi.Budget) error {
 	if err := executeBatch(conn, ctx, query, data); err != nil {
 		return err
 	}
-	log.Printf("Finished saving %d budgets.", len(budgets))
+	fmt.Printf("Finished saving %d budgets.\n", len(budgets))
 	return nil
 }
 
 func saveMerchants(conn driver.Conn, merchants []zenapi.Merchant) error {
-	log.Printf("Starting to save %d merchants...", len(merchants))
+	fmt.Printf("Starting to save %d merchants...\n", len(merchants))
 	ctx := context.Background()
 	if err := conn.Exec(ctx, "TRUNCATE TABLE IF EXISTS merchant"); err != nil {
 		return err
@@ -189,12 +189,12 @@ func saveMerchants(conn driver.Conn, merchants []zenapi.Merchant) error {
 	if err := executeBatch(conn, ctx, query, data); err != nil {
 		return err
 	}
-	log.Printf("Finished saving %d merchants.", len(merchants))
+	fmt.Printf("Finished saving %d merchants.\n", len(merchants))
 	return nil
 }
 
 func saveTags(conn driver.Conn, tags []zenapi.Tag) error {
-	log.Printf("Starting to save %d tags...", len(tags))
+	fmt.Printf("Starting to save %d tags...\n", len(tags))
 	ctx := context.Background()
 	if err := conn.Exec(ctx, "TRUNCATE TABLE IF EXISTS tag"); err != nil {
 		return err
@@ -213,12 +213,12 @@ func saveTags(conn driver.Conn, tags []zenapi.Tag) error {
 	if err := executeBatch(conn, ctx, query, data); err != nil {
 		return err
 	}
-	log.Printf("Finished saving %d tags.", len(tags))
+	fmt.Printf("Finished saving %d tags.\n", len(tags))
 	return nil
 }
 
 func saveAccounts(conn driver.Conn, accounts []zenapi.Account) error {
-	log.Printf("Starting to save %d accounts...", len(accounts))
+	fmt.Printf("Starting to save %d accounts...\n", len(accounts))
 	ctx := context.Background()
 	if err := conn.Exec(ctx, "TRUNCATE TABLE IF EXISTS account"); err != nil {
 		return err
@@ -239,12 +239,12 @@ func saveAccounts(conn driver.Conn, accounts []zenapi.Account) error {
 	if err := executeBatch(conn, ctx, query, data); err != nil {
 		return err
 	}
-	log.Printf("Finished saving %d accounts.", len(accounts))
+	fmt.Printf("Finished saving %d accounts.\n", len(accounts))
 	return nil
 }
 
 func saveUsers(conn driver.Conn, users []zenapi.User) error {
-	log.Printf("Starting to save %d users...", len(users))
+	fmt.Printf("Starting to save %d users...\n", len(users))
 	ctx := context.Background()
 	if err := conn.Exec(ctx, "TRUNCATE TABLE IF EXISTS user"); err != nil {
 		return err
@@ -260,12 +260,12 @@ func saveUsers(conn driver.Conn, users []zenapi.User) error {
 	if err := executeBatch(conn, ctx, "INSERT INTO user (id, changed, login, currency, parent) VALUES (?, ?, ?, ?, ?)", data); err != nil {
 		return err
 	}
-	log.Printf("Finished saving %d users.", len(users))
+	fmt.Printf("Finished saving %d users.\n", len(users))
 	return nil
 }
 
 func saveCompanies(conn driver.Conn, companies []zenapi.Company) error {
-	log.Printf("Starting to save %d companies...", len(companies))
+	fmt.Printf("Starting to save %d companies...\n", len(companies))
 	ctx := context.Background()
 	if err := conn.Exec(ctx, "TRUNCATE TABLE IF EXISTS company"); err != nil {
 		return err
@@ -282,12 +282,12 @@ func saveCompanies(conn driver.Conn, companies []zenapi.Company) error {
 	if err := executeBatch(conn, ctx, query, data); err != nil {
 		return err
 	}
-	log.Printf("Finished saving %d companies.", len(companies))
+	fmt.Printf("Finished saving %d companies.\n", len(companies))
 	return nil
 }
 
 func saveCountries(conn driver.Conn, countries []zenapi.Country) error {
-	log.Printf("Starting to save %d countries...", len(countries))
+	fmt.Printf("Starting to save %d countries...\n", len(countries))
 	ctx := context.Background()
 	if err := conn.Exec(ctx, "TRUNCATE TABLE IF EXISTS country"); err != nil {
 		return err
@@ -304,12 +304,12 @@ func saveCountries(conn driver.Conn, countries []zenapi.Country) error {
 	if err := executeBatch(conn, ctx, query, data); err != nil {
 		return err
 	}
-	log.Printf("Finished saving %d countries.", len(countries))
+	fmt.Printf("Finished saving %d countries.\n", len(countries))
 	return nil
 }
 
 func saveInstruments(conn driver.Conn, instruments []zenapi.Instrument) error {
-	log.Printf("Starting to save %d instruments...", len(instruments))
+	fmt.Printf("Starting to save %d instruments...\n", len(instruments))
 	ctx := context.Background()
 	if err := conn.Exec(ctx, "TRUNCATE TABLE IF EXISTS instrument"); err != nil {
 		return err
@@ -326,6 +326,6 @@ func saveInstruments(conn driver.Conn, instruments []zenapi.Instrument) error {
 	if err := executeBatch(conn, ctx, query, data); err != nil {
 		return err
 	}
-	log.Printf("Finished saving %d instruments.", len(instruments))
+	fmt.Printf("Finished saving %d instruments.\n", len(instruments))
 	return nil
 }
