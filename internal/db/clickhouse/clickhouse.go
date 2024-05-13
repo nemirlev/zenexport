@@ -52,16 +52,19 @@ func (s *Store) connect() error {
 func (s *Store) executeBatch(conn driver.Conn, ctx context.Context, query string, data [][]interface{}) error {
 	batch, err := conn.PrepareBatch(ctx, query)
 	if err != nil {
+		s.Log.WithError(err, "error on prepare batch Clickhouse")
 		return err
 	}
 
 	for _, item := range data {
 		if err := batch.Append(item...); err != nil {
+			s.Log.WithError(err, "error append batch in clickhouse")
 			return err
 		}
 	}
 
 	if err := batch.Send(); err != nil {
+		s.Log.WithError(err, "error send batch in clickhouse")
 		return err
 	}
 	return nil
