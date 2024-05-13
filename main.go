@@ -15,22 +15,23 @@ func createClient(token string) (*zenapi.Client, error) {
 	return zenapi.NewClient(token)
 }
 
-func runSyncAndSave(client *zenapi.Client, db db.DataStore) {
+func runSyncAndSave(log logger.Log, client *zenapi.Client, db db.DataStore) error {
 	fmt.Println("Get data from ZenMoney...")
 	resBody, err := client.FullSync()
 	fmt.Println("Finished getting data from ZenMoney.")
 	if err != nil {
-		fmt.Println(err)
-		return
+		log.WithError(err, "error getting ZenMoney data")
+		return err
 	}
 
 	fmt.Println("Save data to Database...")
 	err = db.Save(&resBody)
 	if err != nil {
-		fmt.Println(err)
-		return
+		log.WithError(err, "error save ZenMoney data to DB")
+		return err
 	}
 	fmt.Println("Import completed.")
+	return nil
 }
 
 func main() {
@@ -60,7 +61,10 @@ func main() {
 
 		for range ticker.C {
 			start := time.Now()
-			runSyncAndSave(client, dbase)
+			err := runSyncAndSave(log, client, dbase)
+			if err != nil {
+				log.WithError(err, "error sync ZenMoney data")
+			}
 
 			nextTick := start.Add(interval)
 
@@ -77,6 +81,9 @@ func main() {
 			fmt.Println()
 		}
 	} else {
-		runSyncAndSave(client, dbase)
+		err := runSyncAndSave(log, client, dbase)
+		if err != nil {
+			log.WithError(err, "error sync ZenMoney data")
+		}
 	}
 }
