@@ -7,6 +7,7 @@ import (
 	"github.com/nemirlev/zenexport/internal/logger"
 )
 
+// NewDataStore фабрика для создания экземпляра DataStore в зависимости от типа базы данных, указанного в конфигурации.
 func NewDataStore(cfg *config.Config, log logger.Log) (DataStore, error) {
 	switch cfg.DatabaseType {
 	case "clickhouse":

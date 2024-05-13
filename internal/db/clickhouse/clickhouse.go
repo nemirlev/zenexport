@@ -16,6 +16,9 @@ type Store struct {
 	Config *config.Config
 }
 
+// connect устанавливает соединение с базой данных ClickHouse, используя параметры, указанные в конфигурации.
+// Параметры:
+// - s: указатель на структуру Store, содержащую конфигурацию и логгер.
 func (s *Store) connect() error {
 	var (
 		ctx       = context.Background()
@@ -48,9 +51,13 @@ func (s *Store) connect() error {
 	return nil
 }
 
-// executeBatch выполняет пакетный запрос в ClickHouse
-func (s *Store) executeBatch(conn driver.Conn, ctx context.Context, query string, data [][]interface{}) error {
-	batch, err := conn.PrepareBatch(ctx, query)
+// executeBatch выполняет пакетный запрос в ClickHouse.
+// Параметры:
+// - ctx: контекст для управления временем выполнения и отменой запроса.
+// - query: строка с SQL-запросом для выполнения пакетного вставки данных.
+// - data: срез с данными, которые будут вставлены в таблицу.
+func (s *Store) executeBatch(ctx context.Context, query string, data [][]interface{}) error {
+	batch, err := s.Conn.PrepareBatch(ctx, query)
 	if err != nil {
 		s.Log.WithError(err, "error on prepare batch Clickhouse")
 		return err
@@ -68,4 +75,13 @@ func (s *Store) executeBatch(conn driver.Conn, ctx context.Context, query string
 		return err
 	}
 	return nil
+}
+
+// truncateTable очищает указанную таблицу в базе данных ClickHouse.
+// Параметры:
+// - ctx: контекст для управления временем выполнения и отменой запроса.
+// - tableName: имя таблицы, которую необходимо очистить.
+func (s *Store) truncateTable(ctx context.Context, tableName string) error {
+	query := fmt.Sprintf("TRUNCATE TABLE IF EXISTS %s", tableName)
+	return s.Conn.Exec(ctx, query)
 }

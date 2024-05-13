@@ -4,76 +4,94 @@ import (
 	"context"
 	"fmt"
 	"github.com/nemirlev/zenapi"
-	"os"
 )
 
+// Save сохраняет данные, полученные из объекта zenapi.Response, в соответствующие таблицы базы данных ClickHouse.
 func (s *Store) Save(data *zenapi.Response) error {
-	err := s.connect()
-	if err != nil {
-		return err
+	if s.Conn == nil {
+		if err := s.connect(); err != nil {
+			return err
+		}
 	}
+
+	ctx := context.Background()
+
 	defer func() {
-		err := s.Conn.Close()
-		if err != nil {
+		if err := s.Conn.Close(); err != nil {
 			s.Log.WithError(err, "failed to close connection")
-			os.Exit(1)
 		}
 	}()
 
-	if err := s.saveInstruments(data.Instrument); err != nil {
-		s.Log.WithError(err, "error saving instrument:")
+	if err := s.saveInstruments(ctx, data.Instrument); err != nil {
 		return err
 	}
-	if err := s.saveCountries(data.Country); err != nil {
-		s.Log.WithError(err, "error saving country's:")
+	if err := s.saveCountries(ctx, data.Country); err != nil {
 		return err
 	}
-	if err := s.saveCompanies(data.Company); err != nil {
-		s.Log.WithError(err, "error saving company's:")
+	if err := s.saveCompanies(ctx, data.Company); err != nil {
 		return err
 	}
-	if err := s.saveUsers(data.User); err != nil {
-		s.Log.WithError(err, "error saving users:")
+	if err := s.saveUsers(ctx, data.User); err != nil {
 		return err
 	}
-	if err := s.saveAccounts(data.Account); err != nil {
-		s.Log.WithError(err, "error saving accounts:")
+	if err := s.saveAccounts(ctx, data.Account); err != nil {
 		return err
 	}
-	if err := s.saveTags(data.Tag); err != nil {
-		s.Log.WithError(err, "error saving tags:")
+	if err := s.saveTags(ctx, data.Tag); err != nil {
 		return err
 	}
-	if err := s.saveMerchants(data.Merchant); err != nil {
-		s.Log.WithError(err, "error saving merchants:")
+	if err := s.saveMerchants(ctx, data.Merchant); err != nil {
 		return err
 	}
-	if err := s.saveBudgets(data.Budget); err != nil {
-		s.Log.WithError(err, "error saving budgets:")
+	if err := s.saveBudgets(ctx, data.Budget); err != nil {
 		return err
 	}
-	if err := s.saveReminders(data.Reminder); err != nil {
-		s.Log.WithError(err, "error saving reminders:")
+	if err := s.saveReminders(ctx, data.Reminder); err != nil {
 		return err
 	}
-	if err := s.saveReminderMarkers(data.ReminderMarker); err != nil {
-		s.Log.WithError(err, "error saving reminder markers:")
+	if err := s.saveReminderMarkers(ctx, data.ReminderMarker); err != nil {
 		return err
 	}
-	if err := s.saveTransactions(data.Transaction); err != nil {
-		s.Log.WithError(err, "error saving transactions:")
+	if err := s.saveTransactions(ctx, data.Transaction); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (s *Store) saveTransactions(transactions []zenapi.Transaction) error {
-	fmt.Printf("Starting to save %d transactions...\n", len(transactions))
-	ctx := context.Background()
-	if err := s.Conn.Exec(ctx, "TRUNCATE TABLE IF EXISTS transaction"); err != nil {
+// saveBatch выполняет пакетное сохранение данных в указанную таблицу базы данных ClickHouse.
+// Параметры:
+// - ctx: контекст для управления временем выполнения и отменой запроса.
+// - tableName: имя таблицы, в которую будут вставлены данные.
+// - query: строка с SQL-запросом для выполнения пакетной вставки данных.
+// - data: срез с данными, которые будут вставлены в таблицу.
+func (s *Store) saveBatch(ctx context.Context, tableName string, query string, data [][]interface{}) error {
+	fmt.Printf("Starting to save %d rows into %s...\n", len(data), tableName)
+	if err := s.truncateTable(ctx, tableName); err != nil {
+		s.Log.WithError(err, "failed to truncate table %s", tableName)
 		return err
 	}
+
+	if err := s.executeBatch(ctx, query, data); err != nil {
+		s.Log.WithError(err, "failed to execute batch for table %s", tableName)
+		return err
+	}
+	fmt.Printf("Finished saving %d rows into %s.\n", len(data), tableName)
+	return nil
+}
+
+// saveTransactions сохраняет транзакции в таблицу transaction базы данных ClickHouse.
+func (s *Store) saveTransactions(ctx context.Context, transactions []zenapi.Transaction) error {
+	query := `
+		INSERT INTO transaction (
+			id, changed, created, user, deleted, hold, income_instrument, income_account, 
+			income, outcome_instrument, outcome_account, outcome, tag, merchant, payee, 
+			original_payee, comment, date, mcc, reminder_marker, op_income, op_income_instrument, 
+			op_outcome, op_outcome_instrument, latitude, longitude
+		) VALUES (
+			?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+		)
+	`
 
 	var data [][]interface{}
 	for _, transaction := range transactions {
@@ -88,20 +106,19 @@ func (s *Store) saveTransactions(transactions []zenapi.Transaction) error {
 		})
 	}
 
-	query := "INSERT INTO transaction (id, changed, created, user, deleted, hold, income_instrument, income_account, income, outcome_instrument, outcome_account, outcome, tag, merchant, payee, original_payee, comment, date, mcc, reminder_marker, op_income, op_income_instrument, op_outcome, op_outcome_instrument, latitude, longitude) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-	if err := s.executeBatch(s.Conn, ctx, query, data); err != nil {
-		return err
-	}
-	fmt.Printf("Finished saving %d transactions.\n", len(transactions))
-	return nil
+	return s.saveBatch(ctx, "transaction", query, data)
 }
 
-func (s *Store) saveReminderMarkers(markers []zenapi.ReminderMarker) error {
-	fmt.Printf("Starting to save %d markers...\n", len(markers))
-	ctx := context.Background()
-	if err := s.Conn.Exec(ctx, "TRUNCATE TABLE IF EXISTS reminder_marker"); err != nil {
-		return err
-	}
+// saveReminderMarkers сохраняет маркеры напоминаний в таблицу reminder_marker базы данных ClickHouse.
+func (s *Store) saveReminderMarkers(ctx context.Context, markers []zenapi.ReminderMarker) error {
+	query := `
+		INSERT INTO reminder_marker (
+			id, changed, user, income_instrument, income_account, income, outcome_instrument, 
+			outcome_account, outcome, tag, merchant, payee, comment, date, reminder, state, notify
+		) VALUES (
+			?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+		)
+	`
 
 	var data [][]interface{}
 	for _, marker := range markers {
@@ -113,20 +130,20 @@ func (s *Store) saveReminderMarkers(markers []zenapi.ReminderMarker) error {
 		})
 	}
 
-	query := "INSERT INTO reminder_marker (id, changed, user, income_instrument, income_account, income, outcome_instrument, outcome_account, outcome, tag, merchant, payee, comment, date, reminder, state, notify) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-	if err := s.executeBatch(s.Conn, ctx, query, data); err != nil {
-		return err
-	}
-	fmt.Printf("Finished saving %d markers.\n", len(markers))
-	return nil
+	return s.saveBatch(ctx, "reminder_marker", query, data)
 }
 
-func (s *Store) saveReminders(reminders []zenapi.Reminder) error {
-	fmt.Printf("Starting to save %d reminders...\n", len(reminders))
-	ctx := context.Background()
-	if err := s.Conn.Exec(ctx, "TRUNCATE TABLE IF EXISTS reminder"); err != nil {
-		return err
-	}
+// saveReminders сохраняет напоминания в таблицу reminder базы данных ClickHouse.
+func (s *Store) saveReminders(ctx context.Context, reminders []zenapi.Reminder) error {
+	query := `
+		INSERT INTO reminder (
+			id, changed, user, income_instrument, income_account, income, outcome_instrument, 
+			outcome_account, outcome, tag, merchant, payee, comment, interval, step, points, 
+			start_date, end_date, notify
+		) VALUES (
+			?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+		)
+	`
 
 	var data [][]interface{}
 	for _, reminder := range reminders {
@@ -138,21 +155,18 @@ func (s *Store) saveReminders(reminders []zenapi.Reminder) error {
 		})
 	}
 
-	query := "INSERT INTO reminder (id, changed, user, income_instrument, income_account, income, outcome_instrument, outcome_account, outcome, tag, merchant, payee, comment, interval, step, points, start_date, end_date, notify) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-	if err := s.executeBatch(s.Conn, ctx, query, data); err != nil {
-		return err
-	}
-	fmt.Printf("Finished saving %d reminders.\n", len(reminders))
-
-	return nil
+	return s.saveBatch(ctx, "reminder", query, data)
 }
 
-func (s *Store) saveBudgets(budgets []zenapi.Budget) error {
-	fmt.Printf("Starting to save %d budgets...\n", len(budgets))
-	ctx := context.Background()
-	if err := s.Conn.Exec(ctx, "TRUNCATE TABLE IF EXISTS budget"); err != nil {
-		return err
-	}
+// saveBudgets сохраняет бюджеты в таблицу budget базы данных ClickHouse.
+func (s *Store) saveBudgets(ctx context.Context, budgets []zenapi.Budget) error {
+	query := `
+		INSERT INTO budget (
+			changed, user, tag, date, income, income_lock, outcome, outcome_lock
+		) VALUES (
+			?, ?, ?, ?, ?, ?, ?, ?
+		)
+	`
 
 	var data [][]interface{}
 	for _, budget := range budgets {
@@ -162,20 +176,18 @@ func (s *Store) saveBudgets(budgets []zenapi.Budget) error {
 		})
 	}
 
-	query := "INSERT INTO budget (changed, user, tag, date, income, income_lock, outcome, outcome_lock) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
-	if err := s.executeBatch(s.Conn, ctx, query, data); err != nil {
-		return err
-	}
-	fmt.Printf("Finished saving %d budgets.\n", len(budgets))
-	return nil
+	return s.saveBatch(ctx, "budget", query, data)
 }
 
-func (s *Store) saveMerchants(merchants []zenapi.Merchant) error {
-	fmt.Printf("Starting to save %d merchants...\n", len(merchants))
-	ctx := context.Background()
-	if err := s.Conn.Exec(ctx, "TRUNCATE TABLE IF EXISTS merchant"); err != nil {
-		return err
-	}
+// saveMerchants сохраняет мерчантов в таблицу merchant базы данных ClickHouse.
+func (s *Store) saveMerchants(ctx context.Context, merchants []zenapi.Merchant) error {
+	query := `
+		INSERT INTO merchant (
+			id, changed, user, title
+		) VALUES (
+			?, ?, ?, ?
+		)
+	`
 
 	var data [][]interface{}
 	for _, merchant := range merchants {
@@ -184,20 +196,19 @@ func (s *Store) saveMerchants(merchants []zenapi.Merchant) error {
 		})
 	}
 
-	query := "INSERT INTO merchant (id, changed, user, title) VALUES (?, ?, ?, ?)"
-	if err := s.executeBatch(s.Conn, ctx, query, data); err != nil {
-		return err
-	}
-	fmt.Printf("Finished saving %d merchants.\n", len(merchants))
-	return nil
+	return s.saveBatch(ctx, "merchant", query, data)
 }
 
-func (s *Store) saveTags(tags []zenapi.Tag) error {
-	fmt.Printf("Starting to save %d tags...\n", len(tags))
-	ctx := context.Background()
-	if err := s.Conn.Exec(ctx, "TRUNCATE TABLE IF EXISTS tag"); err != nil {
-		return err
-	}
+// saveTags сохраняет теги в таблицу tag базы данных ClickHouse.
+func (s *Store) saveTags(ctx context.Context, tags []zenapi.Tag) error {
+	query := `
+		INSERT INTO tag (
+			id, changed, user, title, parent, icon, picture, color, show_income, 
+			show_outcome, budget_income, budget_outcome, required
+		) VALUES (
+			?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+		)
+	`
 
 	var data [][]interface{}
 	for _, tag := range tags {
@@ -208,20 +219,21 @@ func (s *Store) saveTags(tags []zenapi.Tag) error {
 		})
 	}
 
-	query := "INSERT INTO tag (id, changed, user, title, parent, icon, picture, color, show_income, show_outcome, budget_income, budget_outcome, required) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-	if err := s.executeBatch(s.Conn, ctx, query, data); err != nil {
-		return err
-	}
-	fmt.Printf("Finished saving %d tags.\n", len(tags))
-	return nil
+	return s.saveBatch(ctx, "tag", query, data)
 }
 
-func (s *Store) saveAccounts(accounts []zenapi.Account) error {
-	fmt.Printf("Starting to save %d accounts...\n", len(accounts))
-	ctx := context.Background()
-	if err := s.Conn.Exec(ctx, "TRUNCATE TABLE IF EXISTS account"); err != nil {
-		return err
-	}
+// saveAccounts сохраняет счета в таблицу account базы данных ClickHouse.
+func (s *Store) saveAccounts(ctx context.Context, accounts []zenapi.Account) error {
+	query := `
+		INSERT INTO account (
+			id, changed, user, role, instrument, company, type, title, sync_id, balance, 
+			start_balance, credit_limit, in_balance, savings, enable_correction, enable_sms, 
+			archive, capitalization, percent, start_date, end_date_offset, 
+			end_date_offset_interval, payoff_step, payoff_interval
+		) VALUES (
+			?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+		)
+	`
 
 	var data [][]interface{}
 	for _, account := range accounts {
@@ -234,20 +246,18 @@ func (s *Store) saveAccounts(accounts []zenapi.Account) error {
 		})
 	}
 
-	query := "INSERT INTO account (id, changed, user, role, instrument, company, type, title, sync_id, balance, start_balance, credit_limit, in_balance, savings, enable_correction, enable_sms, archive, capitalization, percent, start_date, end_date_offset, end_date_offset_interval, payoff_step, payoff_interval) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-	if err := s.executeBatch(s.Conn, ctx, query, data); err != nil {
-		return err
-	}
-	fmt.Printf("Finished saving %d accounts.\n", len(accounts))
-	return nil
+	return s.saveBatch(ctx, "account", query, data)
 }
 
-func (s *Store) saveUsers(users []zenapi.User) error {
-	fmt.Printf("Starting to save %d users...\n", len(users))
-	ctx := context.Background()
-	if err := s.Conn.Exec(ctx, "TRUNCATE TABLE IF EXISTS user"); err != nil {
-		return err
-	}
+// saveUsers сохраняет пользователей в таблицу user базы данных ClickHouse.
+func (s *Store) saveUsers(ctx context.Context, users []zenapi.User) error {
+	query := `
+		INSERT INTO user (
+			id, changed, login, currency, parent
+		) VALUES (
+			?, ?, ?, ?, ?
+		)
+	`
 
 	var data [][]interface{}
 	for _, user := range users {
@@ -256,20 +266,18 @@ func (s *Store) saveUsers(users []zenapi.User) error {
 		})
 	}
 
-	query := "INSERT INTO user (id, changed, login, currency, parent) VALUES (?, ?, ?, ?, ?)"
-	if err := s.executeBatch(s.Conn, ctx, query, data); err != nil {
-		return err
-	}
-	fmt.Printf("Finished saving %d users.\n", len(users))
-	return nil
+	return s.saveBatch(ctx, "user", query, data)
 }
 
-func (s *Store) saveCompanies(companies []zenapi.Company) error {
-	fmt.Printf("Starting to save %d companies...\n", len(companies))
-	ctx := context.Background()
-	if err := s.Conn.Exec(ctx, "TRUNCATE TABLE IF EXISTS company"); err != nil {
-		return err
-	}
+// saveCompanies сохраняет компании в таблицу company базы данных ClickHouse.
+func (s *Store) saveCompanies(ctx context.Context, companies []zenapi.Company) error {
+	query := `
+		INSERT INTO company (
+			id, changed, title, full_title, www, country
+		) VALUES (
+			?, ?, ?, ?, ?, ?
+		)
+	`
 
 	var data [][]interface{}
 	for _, company := range companies {
@@ -278,20 +286,18 @@ func (s *Store) saveCompanies(companies []zenapi.Company) error {
 		})
 	}
 
-	query := "INSERT INTO company (id, changed, title, full_title, www, country) VALUES (?, ?, ?, ?, ?, ?)"
-	if err := s.executeBatch(s.Conn, ctx, query, data); err != nil {
-		return err
-	}
-	fmt.Printf("Finished saving %d companies.\n", len(companies))
-	return nil
+	return s.saveBatch(ctx, "company", query, data)
 }
 
-func (s *Store) saveCountries(countries []zenapi.Country) error {
-	fmt.Printf("Starting to save %d countries...\n", len(countries))
-	ctx := context.Background()
-	if err := s.Conn.Exec(ctx, "TRUNCATE TABLE IF EXISTS country"); err != nil {
-		return err
-	}
+// saveCountries сохраняет страны в таблицу country базы данных ClickHouse.
+func (s *Store) saveCountries(ctx context.Context, countries []zenapi.Country) error {
+	query := `
+		INSERT INTO country (
+			id, title, currency, domain
+		) VALUES (
+			?, ?, ?, ?
+		)
+	`
 
 	var data [][]interface{}
 	for _, country := range countries {
@@ -300,20 +306,18 @@ func (s *Store) saveCountries(countries []zenapi.Country) error {
 		})
 	}
 
-	query := "INSERT INTO country (id, title, currency, domain) VALUES (?, ?, ?, ?)"
-	if err := s.executeBatch(s.Conn, ctx, query, data); err != nil {
-		return err
-	}
-	fmt.Printf("Finished saving %d countries.\n", len(countries))
-	return nil
+	return s.saveBatch(ctx, "country", query, data)
 }
 
-func (s *Store) saveInstruments(instruments []zenapi.Instrument) error {
-	fmt.Printf("Starting to save %d instruments...\n", len(instruments))
-	ctx := context.Background()
-	if err := s.Conn.Exec(ctx, "TRUNCATE TABLE IF EXISTS instrument"); err != nil {
-		return err
-	}
+// saveInstruments сохраняет валютные инструменты в таблицу instrument базы данных ClickHouse.
+func (s *Store) saveInstruments(ctx context.Context, instruments []zenapi.Instrument) error {
+	query := `
+		INSERT INTO instrument (
+			id, changed, title, short_title, symbol, rate
+		) VALUES (
+			?, ?, ?, ?, ?, ?
+		)
+	`
 
 	var data [][]interface{}
 	for _, instrument := range instruments {
@@ -322,10 +326,5 @@ func (s *Store) saveInstruments(instruments []zenapi.Instrument) error {
 		})
 	}
 
-	query := "INSERT INTO instrument (id, changed, title, short_title, symbol, rate) VALUES (?, ?, ?, ?, ?, ?)"
-	if err := s.executeBatch(s.Conn, ctx, query, data); err != nil {
-		return err
-	}
-	fmt.Printf("Finished saving %d instruments.\n", len(instruments))
-	return nil
+	return s.saveBatch(ctx, "instrument", query, data)
 }
