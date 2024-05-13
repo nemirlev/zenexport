@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"context"
 	"log/slog"
 	"os"
 )
@@ -30,4 +31,12 @@ func (l *Log) WithError(err error, msg string, args ...any) {
 
 func (l *Log) Info(msg string, args ...any) {
 	l.original.Info(msg, args...)
+}
+
+func (l *Log) Debug(msg string, args ...any) {
+	l.original.Debug(msg, args...)
+}
+
+func (l *Log) DebugContext(ctx context.Context, msg string, args ...any) {
+	l.original.DebugContext(ctx, msg, args...)
 }

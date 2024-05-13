@@ -7,24 +7,27 @@ import (
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	"github.com/nemirlev/zenexport/internal/config"
+	"github.com/nemirlev/zenexport/internal/logger"
 )
 
 type Store struct {
-	Conn driver.Conn
+	Conn   driver.Conn
+	Log    logger.Log
+	Config *config.Config
 }
 
-func (s *Store) connect(cfg *config.Config) error {
+func (s *Store) connect() error {
 	var (
 		ctx       = context.Background()
 		conn, err = clickhouse.Open(&clickhouse.Options{
-			Addr: []string{fmt.Sprintf("%s:9000", cfg.ClickhouseServer)},
+			Addr: []string{fmt.Sprintf("%s:9000", s.Config.ClickhouseServer)},
 			Auth: clickhouse.Auth{
-				Database: cfg.ClickhouseDB,
-				Username: cfg.ClickhouseUser,
-				Password: cfg.ClickhousePassword,
+				Database: s.Config.ClickhouseDB,
+				Username: s.Config.ClickhouseUser,
+				Password: s.Config.ClickhousePassword,
 			},
 			Debugf: func(format string, v ...interface{}) {
-				fmt.Printf(format, v)
+				s.Log.Debug(format, v)
 			},
 		})
 	)
@@ -36,7 +39,7 @@ func (s *Store) connect(cfg *config.Config) error {
 	if err := conn.Ping(ctx); err != nil {
 		var exception *clickhouse.Exception
 		if errors.As(err, &exception) {
-			fmt.Printf("Exception [%d] %s \n%s\n", exception.Code, exception.Message, exception.StackTrace)
+			s.Log.WithError(err, "Exception [%d] %s \n%s\n", exception.Code, exception.Message, exception.StackTrace)
 		}
 		return err
 	}
@@ -46,19 +49,22 @@ func (s *Store) connect(cfg *config.Config) error {
 }
 
 // executeBatch выполняет пакетный запрос в ClickHouse
-func executeBatch(conn driver.Conn, ctx context.Context, query string, data [][]interface{}) error {
+func (s *Store) executeBatch(conn driver.Conn, ctx context.Context, query string, data [][]interface{}) error {
 	batch, err := conn.PrepareBatch(ctx, query)
 	if err != nil {
+		s.Log.WithError(err, "error on prepare batch Clickhouse")
 		return err
 	}
 
 	for _, item := range data {
 		if err := batch.Append(item...); err != nil {
+			s.Log.WithError(err, "error append batch in clickhouse")
 			return err
 		}
 	}
 
 	if err := batch.Send(); err != nil {
+		s.Log.WithError(err, "error send batch in clickhouse")
 		return err
 	}
 	return nil
