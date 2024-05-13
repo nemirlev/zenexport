@@ -7,6 +7,12 @@ import (
 )
 
 func (s *Store) Save(data *zenapi.Response) error {
+	if s.Conn == nil {
+		if err := s.connect(); err != nil {
+			return err
+		}
+	}
+
 	ctx := context.Background()
 
 	defer func() {
@@ -15,35 +21,45 @@ func (s *Store) Save(data *zenapi.Response) error {
 		}
 	}()
 
-	saveFuncs := []func(ctx context.Context, data *zenapi.Response) error{
-		func(ctx context.Context, data *zenapi.Response) error { return s.saveInstruments(ctx, data.Instrument) },
-		func(ctx context.Context, data *zenapi.Response) error { return s.saveCountries(ctx, data.Country) },
-		func(ctx context.Context, data *zenapi.Response) error { return s.saveCompanies(ctx, data.Company) },
-		func(ctx context.Context, data *zenapi.Response) error { return s.saveUsers(ctx, data.User) },
-		func(ctx context.Context, data *zenapi.Response) error { return s.saveAccounts(ctx, data.Account) },
-		func(ctx context.Context, data *zenapi.Response) error { return s.saveTags(ctx, data.Tag) },
-		func(ctx context.Context, data *zenapi.Response) error { return s.saveMerchants(ctx, data.Merchant) },
-		func(ctx context.Context, data *zenapi.Response) error { return s.saveBudgets(ctx, data.Budget) },
-		func(ctx context.Context, data *zenapi.Response) error { return s.saveReminders(ctx, data.Reminder) },
-		func(ctx context.Context, data *zenapi.Response) error {
-			return s.saveReminderMarkers(ctx, data.ReminderMarker)
-		},
-		func(ctx context.Context, data *zenapi.Response) error {
-			return s.saveTransactions(ctx, data.Transaction)
-		},
+	if err := s.saveInstruments(ctx, data.Instrument); err != nil {
+		return err
 	}
-
-	for _, saveFunc := range saveFuncs {
-		if err := saveFunc(ctx, data); err != nil {
-			return err
-		}
+	if err := s.saveCountries(ctx, data.Country); err != nil {
+		return err
+	}
+	if err := s.saveCompanies(ctx, data.Company); err != nil {
+		return err
+	}
+	if err := s.saveUsers(ctx, data.User); err != nil {
+		return err
+	}
+	if err := s.saveAccounts(ctx, data.Account); err != nil {
+		return err
+	}
+	if err := s.saveTags(ctx, data.Tag); err != nil {
+		return err
+	}
+	if err := s.saveMerchants(ctx, data.Merchant); err != nil {
+		return err
+	}
+	if err := s.saveBudgets(ctx, data.Budget); err != nil {
+		return err
+	}
+	if err := s.saveReminders(ctx, data.Reminder); err != nil {
+		return err
+	}
+	if err := s.saveReminderMarkers(ctx, data.ReminderMarker); err != nil {
+		return err
+	}
+	if err := s.saveTransactions(ctx, data.Transaction); err != nil {
+		return err
 	}
 
 	return nil
 }
 
 func (s *Store) saveBatch(ctx context.Context, tableName string, query string, data [][]interface{}) error {
-	fmt.Printf("Starting to save data into %s...\n", tableName)
+	fmt.Printf("Starting to save %d rows into %s...\n", len(data), tableName)
 	if err := s.truncateTable(ctx, tableName); err != nil {
 		s.Log.WithError(err, "failed to truncate table %s", tableName)
 		return err
@@ -53,7 +69,7 @@ func (s *Store) saveBatch(ctx context.Context, tableName string, query string, d
 		s.Log.WithError(err, "failed to execute batch for table %s", tableName)
 		return err
 	}
-	fmt.Printf("Finished saving data into %s.\n", tableName)
+	fmt.Printf("Finished saving %d rows into %s.\n", len(data), tableName)
 	return nil
 }
 
