@@ -47,7 +47,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	dbase, err := db.NewDataStore(cfg)
+	dbase, err := db.NewDataStore(cfg, log)
 	if err != nil {
 		log.WithError(err, "failed to setup database")
 		os.Exit(1)

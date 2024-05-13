@@ -6,6 +6,7 @@ import (
 	"github.com/nemirlev/zenapi"
 	"github.com/nemirlev/zenexport/internal/config"
 	"log"
+	"os"
 )
 
 func (s *Store) Save(cfg *config.Config, data *zenapi.Response) error {
@@ -16,30 +17,64 @@ func (s *Store) Save(cfg *config.Config, data *zenapi.Response) error {
 	defer func() {
 		err := s.Conn.Close()
 		if err != nil {
-			log.Fatalf("failed to close connection: %v", err)
+			s.Log.WithError(err, "failed to close connection")
+			os.Exit(1)
 		}
 	}()
 
-	saveInstruments(s.Conn, data.Instrument)
-	saveCountries(s.Conn, data.Country)
-	saveCompanies(s.Conn, data.Company)
-	saveUsers(s.Conn, data.User)
-	saveAccounts(s.Conn, data.Account)
-	saveTags(s.Conn, data.Tag)
-	saveMerchants(s.Conn, data.Merchant)
-	saveBudgets(s.Conn, data.Budget)
-	saveReminders(s.Conn, data.Reminder)
-	saveReminderMarkers(s.Conn, data.ReminderMarker)
-	saveTransactions(s.Conn, data.Transaction)
+	if err := saveInstruments(s.Conn, data.Instrument); err != nil {
+		s.Log.WithError(err, "error saving instrument:")
+		return err
+	}
+	if err := saveCountries(s.Conn, data.Country); err != nil {
+		s.Log.WithError(err, "error saving country's:")
+		return err
+	}
+	if err := saveCompanies(s.Conn, data.Company); err != nil {
+		s.Log.WithError(err, "error saving company's:")
+		return err
+	}
+	if err := saveUsers(s.Conn, data.User); err != nil {
+		s.Log.WithError(err, "error saving users:")
+		return err
+	}
+	if err := saveAccounts(s.Conn, data.Account); err != nil {
+		s.Log.WithError(err, "error saving accounts:")
+		return err
+	}
+	if err := saveTags(s.Conn, data.Tag); err != nil {
+		s.Log.WithError(err, "error saving tags:")
+		return err
+	}
+	if err := saveMerchants(s.Conn, data.Merchant); err != nil {
+		s.Log.WithError(err, "error saving merchants:")
+		return err
+	}
+	if err := saveBudgets(s.Conn, data.Budget); err != nil {
+		s.Log.WithError(err, "error saving budgets:")
+		return err
+	}
+	if err := saveReminders(s.Conn, data.Reminder); err != nil {
+		s.Log.WithError(err, "error saving reminders:")
+		return err
+	}
+	if err := saveReminderMarkers(s.Conn, data.ReminderMarker); err != nil {
+		s.Log.WithError(err, "error saving reminder markers:")
+		return err
+	}
+	if err := saveTransactions(s.Conn, data.Transaction); err != nil {
+		s.Log.WithError(err, "error saving transactions:")
+		return err
+	}
 
 	return nil
 }
 
-func saveTransactions(conn driver.Conn, transactions []zenapi.Transaction) {
+func saveTransactions(conn driver.Conn, transactions []zenapi.Transaction) error {
 	log.Printf("Starting to save %d transactions...", len(transactions))
 	ctx := context.Background()
 	if err := conn.Exec(ctx, "TRUNCATE TABLE IF EXISTS transaction"); err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	var data [][]interface{}
@@ -57,16 +92,17 @@ func saveTransactions(conn driver.Conn, transactions []zenapi.Transaction) {
 
 	query := "INSERT INTO transaction (id, changed, created, user, deleted, hold, income_instrument, income_account, income, outcome_instrument, outcome_account, outcome, tag, merchant, payee, original_payee, comment, date, mcc, reminder_marker, op_income, op_income_instrument, op_outcome, op_outcome_instrument, latitude, longitude) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
 	if err := executeBatch(conn, ctx, query, data); err != nil {
-		log.Fatalf("Error saving transactions: %v", err)
+		return err
 	}
 	log.Printf("Finished saving %d transactions.", len(transactions))
+	return nil
 }
 
-func saveReminderMarkers(conn driver.Conn, markers []zenapi.ReminderMarker) {
+func saveReminderMarkers(conn driver.Conn, markers []zenapi.ReminderMarker) error {
 	log.Printf("Starting to save %d markers...", len(markers))
 	ctx := context.Background()
 	if err := conn.Exec(ctx, "TRUNCATE TABLE IF EXISTS reminder_marker"); err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	var data [][]interface{}
@@ -81,16 +117,17 @@ func saveReminderMarkers(conn driver.Conn, markers []zenapi.ReminderMarker) {
 
 	query := "INSERT INTO reminder_marker (id, changed, user, income_instrument, income_account, income, outcome_instrument, outcome_account, outcome, tag, merchant, payee, comment, date, reminder, state, notify) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
 	if err := executeBatch(conn, ctx, query, data); err != nil {
-		log.Fatalf("Error saving markers: %v", err)
+		return err
 	}
 	log.Printf("Finished saving %d markers.", len(markers))
+	return nil
 }
 
-func saveReminders(conn driver.Conn, reminders []zenapi.Reminder) {
+func saveReminders(conn driver.Conn, reminders []zenapi.Reminder) error {
 	log.Printf("Starting to save %d reminders...", len(reminders))
 	ctx := context.Background()
 	if err := conn.Exec(ctx, "TRUNCATE TABLE IF EXISTS reminder"); err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	var data [][]interface{}
@@ -105,16 +142,18 @@ func saveReminders(conn driver.Conn, reminders []zenapi.Reminder) {
 
 	query := "INSERT INTO reminder (id, changed, user, income_instrument, income_account, income, outcome_instrument, outcome_account, outcome, tag, merchant, payee, comment, interval, step, points, start_date, end_date, notify) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
 	if err := executeBatch(conn, ctx, query, data); err != nil {
-		log.Fatalf("Error saving reminders: %v", err)
+		return err
 	}
 	log.Printf("Finished saving %d reminders.", len(reminders))
+
+	return nil
 }
 
-func saveBudgets(conn driver.Conn, budgets []zenapi.Budget) {
+func saveBudgets(conn driver.Conn, budgets []zenapi.Budget) error {
 	log.Printf("Starting to save %d budgets...", len(budgets))
 	ctx := context.Background()
 	if err := conn.Exec(ctx, "TRUNCATE TABLE IF EXISTS budget"); err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	var data [][]interface{}
@@ -127,16 +166,17 @@ func saveBudgets(conn driver.Conn, budgets []zenapi.Budget) {
 
 	query := "INSERT INTO budget (changed, user, tag, date, income, income_lock, outcome, outcome_lock) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
 	if err := executeBatch(conn, ctx, query, data); err != nil {
-		log.Fatalf("Error saving budgets: %v", err)
+		return err
 	}
 	log.Printf("Finished saving %d budgets.", len(budgets))
+	return nil
 }
 
-func saveMerchants(conn driver.Conn, merchants []zenapi.Merchant) {
+func saveMerchants(conn driver.Conn, merchants []zenapi.Merchant) error {
 	log.Printf("Starting to save %d merchants...", len(merchants))
 	ctx := context.Background()
 	if err := conn.Exec(ctx, "TRUNCATE TABLE IF EXISTS merchant"); err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	var data [][]interface{}
@@ -148,16 +188,17 @@ func saveMerchants(conn driver.Conn, merchants []zenapi.Merchant) {
 
 	query := "INSERT INTO merchant (id, changed, user, title) VALUES (?, ?, ?, ?)"
 	if err := executeBatch(conn, ctx, query, data); err != nil {
-		log.Fatalf("Error saving merchants: %v", err)
+		return err
 	}
 	log.Printf("Finished saving %d merchants.", len(merchants))
+	return nil
 }
 
-func saveTags(conn driver.Conn, tags []zenapi.Tag) {
+func saveTags(conn driver.Conn, tags []zenapi.Tag) error {
 	log.Printf("Starting to save %d tags...", len(tags))
 	ctx := context.Background()
 	if err := conn.Exec(ctx, "TRUNCATE TABLE IF EXISTS tag"); err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	var data [][]interface{}
@@ -171,16 +212,17 @@ func saveTags(conn driver.Conn, tags []zenapi.Tag) {
 
 	query := "INSERT INTO tag (id, changed, user, title, parent, icon, picture, color, show_income, show_outcome, budget_income, budget_outcome, required) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
 	if err := executeBatch(conn, ctx, query, data); err != nil {
-		log.Fatalf("Error saving tags: %v", err)
+		return err
 	}
 	log.Printf("Finished saving %d tags.", len(tags))
+	return nil
 }
 
-func saveAccounts(conn driver.Conn, accounts []zenapi.Account) {
+func saveAccounts(conn driver.Conn, accounts []zenapi.Account) error {
 	log.Printf("Starting to save %d accounts...", len(accounts))
 	ctx := context.Background()
 	if err := conn.Exec(ctx, "TRUNCATE TABLE IF EXISTS account"); err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	var data [][]interface{}
@@ -196,16 +238,17 @@ func saveAccounts(conn driver.Conn, accounts []zenapi.Account) {
 
 	query := "INSERT INTO account (id, changed, user, role, instrument, company, type, title, sync_id, balance, start_balance, credit_limit, in_balance, savings, enable_correction, enable_sms, archive, capitalization, percent, start_date, end_date_offset, end_date_offset_interval, payoff_step, payoff_interval) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
 	if err := executeBatch(conn, ctx, query, data); err != nil {
-		log.Fatalf("Error saving accounts: %v", err)
+		return err
 	}
 	log.Printf("Finished saving %d accounts.", len(accounts))
+	return nil
 }
 
-func saveUsers(conn driver.Conn, users []zenapi.User) {
+func saveUsers(conn driver.Conn, users []zenapi.User) error {
 	log.Printf("Starting to save %d users...", len(users))
 	ctx := context.Background()
 	if err := conn.Exec(ctx, "TRUNCATE TABLE IF EXISTS user"); err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	var data [][]interface{}
@@ -216,16 +259,17 @@ func saveUsers(conn driver.Conn, users []zenapi.User) {
 	}
 
 	if err := executeBatch(conn, ctx, "INSERT INTO user (id, changed, login, currency, parent) VALUES (?, ?, ?, ?, ?)", data); err != nil {
-		log.Fatalf("Error saving users: %v", err)
+		return err
 	}
 	log.Printf("Finished saving %d users.", len(users))
+	return nil
 }
 
-func saveCompanies(conn driver.Conn, companies []zenapi.Company) {
+func saveCompanies(conn driver.Conn, companies []zenapi.Company) error {
 	log.Printf("Starting to save %d companies...", len(companies))
 	ctx := context.Background()
 	if err := conn.Exec(ctx, "TRUNCATE TABLE IF EXISTS company"); err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	var data [][]interface{}
@@ -237,16 +281,17 @@ func saveCompanies(conn driver.Conn, companies []zenapi.Company) {
 
 	query := "INSERT INTO company (id, changed, title, full_title, www, country) VALUES (?, ?, ?, ?, ?, ?)"
 	if err := executeBatch(conn, ctx, query, data); err != nil {
-		log.Fatalf("Error saving companies: %v", err)
+		return err
 	}
 	log.Printf("Finished saving %d companies.", len(companies))
+	return nil
 }
 
-func saveCountries(conn driver.Conn, countries []zenapi.Country) {
+func saveCountries(conn driver.Conn, countries []zenapi.Country) error {
 	log.Printf("Starting to save %d countries...", len(countries))
 	ctx := context.Background()
 	if err := conn.Exec(ctx, "TRUNCATE TABLE IF EXISTS country"); err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	var data [][]interface{}
@@ -258,16 +303,17 @@ func saveCountries(conn driver.Conn, countries []zenapi.Country) {
 
 	query := "INSERT INTO country (id, title, currency, domain) VALUES (?, ?, ?, ?)"
 	if err := executeBatch(conn, ctx, query, data); err != nil {
-		log.Fatalf("Error saving countries: %v", err)
+		return err
 	}
 	log.Printf("Finished saving %d countries.", len(countries))
+	return nil
 }
 
-func saveInstruments(conn driver.Conn, instruments []zenapi.Instrument) {
+func saveInstruments(conn driver.Conn, instruments []zenapi.Instrument) error {
 	log.Printf("Starting to save %d instruments...", len(instruments))
 	ctx := context.Background()
 	if err := conn.Exec(ctx, "TRUNCATE TABLE IF EXISTS instrument"); err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	var data [][]interface{}
@@ -279,7 +325,8 @@ func saveInstruments(conn driver.Conn, instruments []zenapi.Instrument) {
 
 	query := "INSERT INTO instrument (id, changed, title, short_title, symbol, rate) VALUES (?, ?, ?, ?, ?, ?)"
 	if err := executeBatch(conn, ctx, query, data); err != nil {
-		log.Fatalf("Error saving instruments: %v", err)
+		return err
 	}
 	log.Printf("Finished saving %d instruments.", len(instruments))
+	return nil
 }

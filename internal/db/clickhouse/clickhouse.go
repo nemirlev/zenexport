@@ -7,10 +7,13 @@ import (
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	"github.com/nemirlev/zenexport/internal/config"
+	"github.com/nemirlev/zenexport/internal/logger"
 )
 
 type Store struct {
-	Conn driver.Conn
+	Conn   driver.Conn
+	Log    logger.Log
+	Config *config.Config
 }
 
 func (s *Store) connect(cfg *config.Config) error {
